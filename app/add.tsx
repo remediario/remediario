@@ -14,6 +14,9 @@ import { useState } from "react";
 
 import { useRouter } from "expo-router";
 
+import { useAtom } from "jotai";
+import { remediosAtom } from "@/atoms";
+
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 const AddScreen = () => {
@@ -24,6 +27,8 @@ const AddScreen = () => {
   const [takingPhoto, setTakingPhoto] = useState(false);
 
   const router = useRouter();
+
+  const [, setRemedios] = useAtom(remediosAtom);
 
   if (!permission) {
     // Camera permissions are still loading.
@@ -104,6 +109,16 @@ const AddScreen = () => {
                 <TouchableOpacity
                   className=" flex-row gap-4 items-center bg-rose-600 p-4 rounded-lg"
                   onPress={() => {
+                    setRemedios((remedios) => [
+                      ...remedios,
+                      {
+                        nome: "Tylenol",
+                        principioAtivo: "Paracetamol",
+                        tipo: "De referência",
+                        categoria: "Analgésico",
+                        fabricante: "J&J",
+                      },
+                    ]);
                     setModalVisible(false);
                     router.dismissTo("/");
                   }}
