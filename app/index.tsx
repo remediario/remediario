@@ -61,6 +61,10 @@ export default function Index() {
                   <Text className="text-gray-500">
                     {remedio.principioAtivo}
                   </Text>
+                  <Text>
+                    {remedio.tipo} - {remedio.categoria}
+                  </Text>
+                  <Text>{remedio.fabricante}</Text>
                 </View>
               </View>
             ))}

@@ -17,12 +17,15 @@ import { useRouter } from "expo-router";
 import { useAtom } from "jotai";
 import { remediosAtom } from "@/atoms";
 
+import * as FileSystem from "expo-file-system";
+
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 const AddScreen = () => {
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [takingPhoto, setTakingPhoto] = useState(false);
 
@@ -60,6 +63,7 @@ const AddScreen = () => {
           style={{ height: "100%", width: "100%" }}
           ref={(ref) => setCameraRef(ref)}
           animateShutter={true}
+          pictureSize="High"
         ></CameraView>
       </View>
 
@@ -71,11 +75,15 @@ const AddScreen = () => {
           onPress={async () => {
             if (takingPhoto) return;
             setTakingPhoto(true);
+            const pictureSizes =
+              await cameraRef?.getAvailablePictureSizesAsync();
+            //Alert.alert("Picture sizes", JSON.stringify(pictureSizes));
             const photoData = await cameraRef?.takePictureAsync({
-              base64: true,
+              quality: 1,
             });
             if (!photoData) return Alert.alert("Error", "No photo taken");
             setPhoto(photoData.uri);
+            //setPhotoBase64(photoData.base64 || null);
             setModalVisible(true);
             setTakingPhoto(false);
           }}
@@ -108,19 +116,44 @@ const AddScreen = () => {
               <View className="gap-2">
                 <TouchableOpacity
                   className=" flex-row gap-4 items-center bg-rose-600 p-4 rounded-lg"
-                  onPress={() => {
-                    setRemedios((remedios) => [
-                      ...remedios,
-                      {
-                        nome: "Tylenol",
-                        principioAtivo: "Paracetamol",
-                        tipo: "De referência",
-                        categoria: "Analgésico",
-                        fabricante: "J&J",
-                      },
-                    ]);
-                    setModalVisible(false);
-                    router.dismissTo("/");
+                  onPress={async () => {
+                    try {
+                      const base64Image = await FileSystem.readAsStringAsync(
+                        photo,
+                        {
+                          encoding: FileSystem.EncodingType.Base64,
+                        }
+                      );
+                      const response = await fetch(
+                        "http://172.20.10.10:7070/ocr",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            image: base64Image,
+                          }),
+                        }
+                      );
+                      Alert.alert("OCR Response", await response.text());
+                      setRemedios((remedios) => [
+                        ...remedios,
+                        {
+                          nome: "Tylenol",
+                          principioAtivo: "Paracetamol",
+                          tipo: "De referência",
+                          categoria: "Analgésico",
+                          fabricante: "J&J",
+                        },
+                      ]);
+                      setModalVisible(false);
+                      router.dismissTo("/");
+                    } catch (err) {
+                      Alert.alert("OCR Error", err.message);
+                      setModalVisible(false);
+                      return;
+                    }
                   }}
                 >
                   <FontAwesome6 name="circle-check" size={22} color="white" />
